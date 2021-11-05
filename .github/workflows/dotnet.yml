@@ -1,0 +1,34 @@
+name: .NET
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [linux, windows, macos]
+        projects: [TesApi.Web, TriggerService]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Test
+      run: dotnet test --no-build --verbosity normal
+    - name: Publish
+      run: dotnet publish --no-build --verbosity normal -r linux-x64
+      working-directory: src/${{ matrix.projects }}
+    - name: Publish
+      run: dotnet publish --no-build --verbosity normal --self-contained true -r ${{ matrix.platform }}-x64 -p:EnableCompressionInSingleFile=true -p:PublishSingleFile=true -p:SelfContained=true -p:PublishReadyToRun=true
+      working-directory: src/deploy-cromwell-on-azure
