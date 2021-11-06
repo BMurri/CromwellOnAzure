@@ -32,17 +32,15 @@ on:
 defaults:
   run:
     shell: bash
-runs:
-  using: "composite"
-  steps:
-    env.restore: '--no-restore'
-    env.restore: ''
-    if: ${{ inputs.restore }}
-    env.build: '--no-build'
-    env.build: ''
-    if: ${{ inputs.build }}
-    run: pushd ${{ inputs.directory }}
-    if: ${{ '' != inputs.directory }}
-    run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
-    run: popd
-    if: ${{ '' != inputs.directory }}
+steps:
+  env.restore: '--no-restore'
+  env.restore: ''
+  if: ${{ inputs.restore }}
+  env.build: '--no-build'
+  env.build: ''
+  if: ${{ inputs.build }}
+  run: pushd ${{ inputs.directory }}
+  if: ${{ '' != inputs.directory }}
+  run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
+  run: popd
+  if: ${{ '' != inputs.directory }}
