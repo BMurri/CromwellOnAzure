@@ -27,7 +27,12 @@ jobs:
       with:
         dotnet-version: 5.0.x
     - name: Restore dependencies
-      run: dotnet restore -r ${{ matrix.platform }}
+      uses: ../actions/dotnet.yml@${{ env.GITHUB_REF }}
+      with:
+        command: restore
+        restore: true
+        build: true
+        additional: "-r ${{ matrix.platform }}"
     - name: Build
       run: |
         pushd src/Common
@@ -67,7 +72,7 @@ jobs:
     - name: Publish
       run: |
         echo $SelfContained $PublishSingleFile
-        dotnet publish --no-build --verbosity normal -r linux-x64
+        dotnet publish --no-build --verbosity normal -r ${{ matrix.platform }}
       working-directory: src/${{ matrix.projects }}
     - name: Publish
       run: |
