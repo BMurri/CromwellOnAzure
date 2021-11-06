@@ -36,8 +36,9 @@ runs:
       if: ${{ '' != inputs.directory }}
       shell: bash
     - name: command
-      env.restore: ${{ fromJSON('["--no-restore", ""]')[ inputs.restore ] }}
-      env.build: ${{ fromJSON('["--no-build", ""]')[ inputs.build ] }}
+      env:
+        RESTORE: ${{ fromJSON('["--no-restore", ""]')[ inputs.restore ] }}
+        BUILD: ${{ fromJSON('["--no-build", ""]')[ inputs.build ] }}
       run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
       shell: bash
     - name: popd
