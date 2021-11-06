@@ -30,6 +30,14 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: check restore
+      run: echo Restore! is ${{ inputs.restore }}
+      shell: bash
+      if: ${{ inputs.restore }}
+    - name: check restore
+      run: echo Build! is ${{ inputs.build }}
+      shell: bash
+      if: ${{ inputs.build }}
     - name: command
       env:
         RESTORE: ${{ fromJSON('["--no-restore", ""]')[ inputs.restore ] }}
