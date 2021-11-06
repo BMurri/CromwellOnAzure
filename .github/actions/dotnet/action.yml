@@ -33,11 +33,13 @@ defaults:
   run:
     shell: bash
 steps:
-  env.restore: ${{ fromJSON('["--no-restore", ""]')[ inputs.restore ] }}
-  env.build: ${{ fromJSON('["--no-build", ""]')[ inputs.build ] }}
-  if: ${{ inputs.build }}
-  run: pushd ${{ inputs.directory }}
-  if: ${{ '' != inputs.directory }}
-  run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
-  run: popd
-  if: ${{ '' != inputs.directory }}
+  step:
+    if: ${{ '' != inputs.directory }}
+    run: pushd ${{ inputs.directory }}
+  step:
+    env.restore: ${{ fromJSON('["--no-restore", ""]')[ inputs.restore ] }}
+    env.build: ${{ fromJSON('["--no-build", ""]')[ inputs.build ] }}
+    run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
+  step:
+    if: ${{ '' != inputs.directory }}
+    run: popd
