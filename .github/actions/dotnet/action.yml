@@ -10,7 +10,7 @@ inputs:
     description: 'path where command is run'
     required: false
     type: string
-    default: ''
+    default: ${{ github.workspace }}
   restore:
     description: 'Performs restore if needed (set to false to suppress)'
     type: boolean
@@ -34,7 +34,6 @@ runs:
       env:
         RESTORE: ${{ fromJSON('["--no-restore", ""]')[ inputs.restore ] }}
         BUILD: ${{ fromJSON('["--no-build", ""]')[ inputs.build ] }}
-        workDir: ${{ fromJSON('[inputs.directory, github.workspace]')[ '' == inputs.directory ] }}
       run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
       shell: bash
-      working-directory: ${{ env.workDir }}
+      working-directory: ${{ inputs.directory }}
