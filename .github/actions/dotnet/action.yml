@@ -27,21 +27,14 @@ inputs:
     type: string
     default: ''
 
-# inputs.<name> => $INPUT_<name>
 runs:
   using: "composite"
   steps:
-    - name: pushd
-      run: pushd ${{ inputs.directory }}
-      if: ${{ '' != inputs.directory }}
-      shell: bash
     - name: command
       env:
         RESTORE: ${{ fromJSON('["--no-restore", ""]')[ inputs.restore ] }}
         BUILD: ${{ fromJSON('["--no-build", ""]')[ inputs.build ] }}
+        workDir: ${{ fromJSON('[inputs.directory, github.workspace]')[ '' == inputs.directory ] }}
       run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
       shell: bash
-    - name: popd
-      run: popd
-      if: ${{ '' != inputs.directory }}
-      shell: bash
+      working-directory: ${{ env.workDir }}
