@@ -29,17 +29,17 @@ on:
         required: false
         type: string
         default: ''
-defaults:
-  run:
-    shell: bash
-steps:
-  pushd:
-    run: pushd ${{ inputs.directory }}
-    if: ${{ '' != inputs.directory }}
-  command:
-    env.restore: ${{ fromJSON('["--no-restore", ""]')[ inputs.restore ] }}
-    env.build: ${{ fromJSON('["--no-build", ""]')[ inputs.build ] }}
-    run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
-  popd:
-    run: popd
-    if: ${{ '' != inputs.directory }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      pushd:
+        run: pushd ${{ inputs.directory }}
+        if: ${{ '' != inputs.directory }}
+      command:
+        env.restore: ${{ fromJSON('["--no-restore", ""]')[ inputs.restore ] }}
+        env.build: ${{ fromJSON('["--no-build", ""]')[ inputs.build ] }}
+        run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
+      popd:
+        run: popd
+        if: ${{ '' != inputs.directory }}
