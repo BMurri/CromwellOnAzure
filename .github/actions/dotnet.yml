@@ -17,11 +17,18 @@ on:
       restore:
         description: 'Performs restore if needed (set to false to suppress)'
         type: boolean
-        required: true
+        required: false
+        default: true
       build:
         description: 'Performs build if needed (set to false to suppress)'
         type: boolean
-        required: true
+        required: false
+        default: true
+      additional:
+        description: 'Any additional arguments'
+        required: false
+        type: string
+        default: ''
 defaults:
   run:
     shell: bash
@@ -36,6 +43,6 @@ runs:
     if: ${{ inputs.build }}
     run: pushd ${{ inputs.directory }}
     if: ${{ '' != inputs.directory }}
-    run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }}
+    run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
     run: popd
     if: ${{ '' != inputs.directory }}
