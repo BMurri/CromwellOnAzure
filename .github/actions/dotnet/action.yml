@@ -33,11 +33,8 @@ defaults:
   run:
     shell: bash
 steps:
-  env.restore: '--no-restore'
-  env.restore: ''
-  if: ${{ inputs.restore }}
-  env.build: '--no-build'
-  env.build: ''
+  env.restore: ${{ FROMjson('["--no-restore", ""]')[ inputs.restore ] }}
+  env.build: ${{ FROMjson('["--no-build", ""]')[ inputs.build ] }}
   if: ${{ inputs.build }}
   run: pushd ${{ inputs.directory }}
   if: ${{ '' != inputs.directory }}
