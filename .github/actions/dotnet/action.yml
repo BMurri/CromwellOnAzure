@@ -5,43 +5,29 @@ inputs:
   command:
     description: 'Command to run'
     required: true
-    type: string
   directory:
     description: 'path where command is run'
     required: false
-    type: string
     default: ${{ github.workspace }}
   restore:
     description: 'Performs restore if needed (set to false to suppress)'
-    type: boolean
     required: false
     default: true
   build:
     description: 'Performs build if needed (set to false to suppress)'
-    type: boolean
     required: false
     default: true
   additional:
     description: 'Any additional arguments'
     required: false
-    type: string
     default: ''
 
 runs:
   using: "composite"
   steps:
-    - name: check restore
-      run: echo Restore! is ${{ inputs.restore }}
-      shell: bash
-      if: ${{ inputs.restore }}
-    - name: check restore
-      run: echo Build! is ${{ inputs.build }}
-      shell: bash
-      if: ${{ inputs.build }}
-    - name: command
-      env:
-        RESTORE: ${{ fromJSON('["--no-restore", ""]')[ inputs.restore ] }}
-        BUILD: ${{ fromJSON('["--no-build", ""]')[ inputs.build ] }}
+    - env:
+        RESTORE: ${{ fromJSON('["--no-restore", ""]')[ false != inputs.restore ] }}
+        BUILD: ${{ fromJSON('["--no-build", ""]')[ false != inputs.build ] }}
       run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
       shell: bash
       working-directory: ${{ inputs.directory }}
