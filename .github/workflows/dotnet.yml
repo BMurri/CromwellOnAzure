@@ -27,7 +27,7 @@ jobs:
       with:
         dotnet-version: 5.0.x
     - name: Restore dependencies
-      uses: .github/actions/dotnet/action.yml
+      uses: ./.github/actions/dotnet/
       with:
         command: restore
         restore: true
