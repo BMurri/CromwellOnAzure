@@ -32,15 +32,12 @@ runs:
   using: "composite"
   steps:
     - name: pushd
-      run: pushd ${{ inputs.directory }}
-        shell: bash
+      shell: pushd ${{ inputs.directory }}
       if: ${{ '' != inputs.directory }}
     - name: command
       env.restore: ${{ fromJSON('["--no-restore", ""]')[ inputs.restore ] }}
       env.build: ${{ fromJSON('["--no-build", ""]')[ inputs.build ] }}
-      run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
-        shell: bash
+      shell: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
     - name: popd
-      run: popd
-        shell: bash
+      shell: popd
       if: ${{ '' != inputs.directory }}
