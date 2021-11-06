@@ -13,13 +13,6 @@ jobs:
     strategy:
       matrix:
         platform: [linux-x64, win-x64, osx-x64]
-        projects: [TesApi.Web, TriggerService]
-    env:
-       EnableCompressionInSingleFile: "true"
-       PublishSingleFile: "true"
-       SelfContained: "true"
-       PublishReadyToRun: "true"
-       UseAppHost: "true"
     steps:
     - uses: actions/checkout@v2
     - name: Setup .NET
@@ -33,49 +26,129 @@ jobs:
         restore: true
         build: true
         additional: "-r ${{ matrix.platform }}"
-    - name: Build
-      run: |
-        pushd src/Common
-        dotnet build --no-restore -r  ${{ matrix.platform }}
-        popd
-        pushd src/CromwellApiClient
-        dotnet build --no-restore -r  ${{ matrix.platform }}
-        popd
-        pushd src/deploy-cromwell-on-azure
-        dotnet build --no-restore -r  ${{ matrix.platform }}
-        popd
-        pushd src/Tes
-        dotnet build --no-restore -r  ${{ matrix.platform }}
-        popd
-        pushd src/TesApi.Web
-        dotnet build --no-restore -r  ${{ matrix.platform }}
-        popd
-        pushd src/TriggerService
-        dotnet build --no-restore -r  ${{ matrix.platform }}
-        popd
-        export SelfContained=false
-        export PublishSingleFile=false
-        pushd src/Common.Tests
-        dotnet build --no-restore
-        popd
-        pushd src/deploy-cromwell-on-azure.Tests
-        dotnet build --no-restore
-        popd
-        pushd src/TesApi.Tests
-        dotnet build --no-restore
-        popd
-        pushd src/TriggerService.Tests
-        dotnet build --no-restore
-        popd
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
-    - name: Publish
-      run: |
-        echo $SelfContained $PublishSingleFile
-        dotnet publish --no-build --verbosity normal -r ${{ matrix.platform }}
-      working-directory: src/${{ matrix.projects }}
-    - name: Publish
-      run: |
-        echo $SelfContained $PublishSingleFile
-        dotnet publish --no-build --verbosity normal --self-contained true -r ${{ matrix.platform }}
-      working-directory: src/deploy-cromwell-on-azure
+    - name: Build Deploy Tool
+      env:
+        EnableCompressionInSingleFile: "true"
+        PublishSingleFile: "true"
+        SelfContained: "true"
+        UseAppHost: "true"
+      uses: ./.github/actions/dotnet/
+      with:
+        command: build
+        directory: "src/deploy-cromwell-on-azure"
+        restore: false
+        build: true
+        additional: "-r ${{ matrix.platform }}"
+    - name: Build Tes
+      uses: ./.github/actions/dotnet/
+      with:
+        command: build
+        directory: "src/TesApi.Web"
+        restore: false
+        build: true
+        additional: "-r ${{ matrix.platform }}"
+      if: ${{ 'linux-x64' == matrix.platform }}
+    - name: Build TriggerService
+      uses: ./.github/actions/dotnet/
+      with:
+        command: build
+        directory: "src/TriggerService"
+        restore: false
+        build: true
+        additional: "-r ${{ matrix.platform }}"
+      if: ${{ 'linux-x64' == matrix.platform }}
+    - name: Build Common Tests
+      uses: ./.github/actions/dotnet/
+      with:
+        command: build
+        directory: "src/Common.Tests"
+        restore: false
+        build: true
+    - name: Build Deployer Tests
+      uses: ./.github/actions/dotnet/
+      with:
+        command: build
+        directory: "src/deploy-cromwell-on-azure.Tests"
+        restore: false
+        build: true
+    - name: Build Tes Tests
+      uses: ./.github/actions/dotnet/
+      with:
+        command: build
+        directory: "src/TesApi.Tests"
+        restore: false
+        build: true
+      if: ${{ 'linux-x64' == matrix.platform }}
+    - name: Build TriggerService Tests
+      uses: ./.github/actions/dotnet/
+      with:
+        command: build
+        directory: "src/TriggerService.Tests"
+        restore: false
+        build: true
+      if: ${{ 'linux-x64' == matrix.platform }}
+    - name: Run Common Tests
+      uses: ./.github/actions/dotnet/
+      with:
+        command: test
+        directory: "src/Common.Tests"
+        restore: true
+        build: false
+        additional: "--verbosity normal"
+    - name: Run Deployer Tests
+      uses: ./.github/actions/dotnet/
+      with:
+        command: test
+        directory: "src/deploy-cromwell-on-azure.Tests"
+        restore: true
+        build: false
+        additional: "--verbosity normal"
+    - name: Run Tes Tests
+      uses: ./.github/actions/dotnet/
+      with:
+        command: test
+        directory: "src/TesApi.Tests"
+        restore: true
+        build: false
+        additional: "--verbosity normal"
+      if: ${{ 'linux-x64' == matrix.platform }}
+    - name: Run TriggerService Tests
+      uses: ./.github/actions/dotnet/
+      with:
+        command: test
+        directory: "src/TriggerService.Tests"
+        restore: true
+        build: false
+        additional: "--verbosity normal"
+      if: ${{ 'linux-x64' == matrix.platform }}
+    - name: Publish Tes
+      uses: ./.github/actions/dotnet/
+      with:
+        command: publish
+        directory: "src/TesApi.Web"
+        restore: true
+        build: false
+        additional: "--verbosity normal -r ${{ matrix.platform }}"
+      if: ${{ 'linux-x64' == matrix.platform }}
+    - name: Publish TriggerService
+      uses: ./.github/actions/dotnet/
+      with:
+        command: publish
+        directory: "src/TriggerService"
+        restore: true
+        build: false
+        additional: "--verbosity normal -r ${{ matrix.platform }}"
+      if: ${{ 'linux-x64' == matrix.platform }}
+    - name: Publish Deploy Tool
+      env:
+        EnableCompressionInSingleFile: "true"
+        PublishSingleFile: "true"
+        SelfContained: "true"
+        UseAppHost: "true"
+      uses: ./.github/actions/dotnet/
+      with:
+        command: publish
+        directory: "src/deploy-cromwell-on-azure"
+        restore: true
+        build: false
+        additional: "--verbosity normal --self-contained true -r ${{ matrix.platform }}"
