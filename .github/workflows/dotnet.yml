@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        platform: [linux, windows, macos]
+        platform: [linux-x64, windows-x64, macos]
         projects: [TesApi.Web, TriggerService]
     steps:
     - uses: actions/checkout@v2
@@ -21,7 +21,7 @@ jobs:
       with:
         dotnet-version: 5.0.x
     - name: Restore dependencies
-      run: dotnet restore -r ${{ matrix.platform }}-x64
+      run: dotnet restore -r ${{ matrix.platform }}
     - name: Build
       run: dotnet build --no-restore
     - name: Test
@@ -30,5 +30,5 @@ jobs:
       run: dotnet publish --no-build --verbosity normal -r linux-x64
       working-directory: src/${{ matrix.projects }}
     - name: Publish
-      run: dotnet publish --no-build --verbosity normal --self-contained true -r ${{ matrix.platform }}-x64 -p:EnableCompressionInSingleFile=true -p:PublishSingleFile=true -p:SelfContained=true -p:PublishReadyToRun=true
+      run: dotnet publish --no-build --verbosity normal --self-contained true -r ${{ matrix.platform }} -p:EnableCompressionInSingleFile=true -p:PublishSingleFile=true -p:SelfContained=true -p:PublishReadyToRun=true
       working-directory: src/deploy-cromwell-on-azure
