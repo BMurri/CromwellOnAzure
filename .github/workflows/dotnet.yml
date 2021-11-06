@@ -28,7 +28,18 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore -r ${{ matrix.platform }}
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore -r linux-x64
+      working-directory:
+        src/Common
+        src/Common.Tests
+        src/CromwellApiClient
+        src/deploy-cromwell-on-azure
+        src/deploy-cromwell-on-azure.Tests
+        src/Tes
+        src/TesApi.Web
+        src/TesApi.Tests
+        src/TriggerService
+        src/TriggerService.Tests
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: Publish
