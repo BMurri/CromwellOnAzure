@@ -28,7 +28,7 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore -r ${{ matrix.platform }}
     - name: Build
-      run: dotnet build --no-restore -r ${{ matrix.platform }}
+      run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: Publish
