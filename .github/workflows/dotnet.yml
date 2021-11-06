@@ -33,16 +33,10 @@ jobs:
         pushd src/Common
         dotnet build --no-restore -r  ${{ matrix.platform }}
         popd
-        pushd src/Common.Tests
-        dotnet build --no-restore -r  ${{ matrix.platform }}
-        popd
         pushd src/CromwellApiClient
         dotnet build --no-restore -r  ${{ matrix.platform }}
         popd
         pushd src/deploy-cromwell-on-azure
-        dotnet build --no-restore -r  ${{ matrix.platform }}
-        popd
-        pushd src/deploy-cromwell-on-azure.Tests
         dotnet build --no-restore -r  ${{ matrix.platform }}
         popd
         pushd src/Tes
@@ -51,14 +45,21 @@ jobs:
         pushd src/TesApi.Web
         dotnet build --no-restore -r  ${{ matrix.platform }}
         popd
-        pushd src/TesApi.Tests
-        dotnet build --no-restore -r  ${{ matrix.platform }}
-        popd
         pushd src/TriggerService
         dotnet build --no-restore -r  ${{ matrix.platform }}
         popd
+        export SelfContained=false
+        pushd src/Common.Tests
+        dotnet build --no-restore
+        popd
+        pushd src/deploy-cromwell-on-azure.Tests
+        dotnet build --no-restore
+        popd
+        pushd src/TesApi.Tests
+        dotnet build --no-restore
+        popd
         pushd drc/TriggerService.Tests
-        dotnet build --no-restore -r  ${{ matrix.platform }}
+        dotnet build --no-restore
         popd
     - name: Test
       run: dotnet test --no-build --verbosity normal
