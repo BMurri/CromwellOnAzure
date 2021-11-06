@@ -28,18 +28,37 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore -r ${{ matrix.platform }}
     - name: Build
-      run: dotnet build --no-restore -r linux-x64
-      working-directory:
-        ./src/Common
-        ./src/Common.Tests
-        ./src/CromwellApiClient
-        ./src/deploy-cromwell-on-azure
-        ./src/deploy-cromwell-on-azure.Tests
-        ./src/Tes
-        ./src/TesApi.Web
-        ./src/TesApi.Tests
-        ./src/TriggerService
-        ./src/TriggerService.Tests
+      run: |
+        pushd src/Common
+        dotnet build --no-restore -r linux-x64
+        popd
+        pushd src/Common.Tests
+        dotnet build --no-restore -r linux-x64
+        popd
+        pushd src/CromwellApiClient
+        dotnet build --no-restore -r linux-x64
+        popd
+        pushd src/deploy-cromwell-on-azure
+        dotnet build --no-restore -r linux-x64
+        popd
+        pushd src/deploy-cromwell-on-azure.Tests
+        dotnet build --no-restore -r linux-x64
+        popd
+        pushd src/Tes
+        dotnet build --no-restore -r linux-x64
+        popd
+        pushd src/TesApi.Web
+        dotnet build --no-restore -r linux-x64
+        popd
+        pushd src/TesApi.Tests
+        dotnet build --no-restore -r linux-x64
+        popd
+        pushd src/TriggerService
+        dotnet build --no-restore -r linux-x64
+        popd
+        pushd drc/TriggerService.Tests
+        dotnet build --no-restore -r linux-x64
+        popd
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: Publish
