@@ -1,7 +1,6 @@
 name: dotnet
 author: 'Blair Murri'
 description: 'Runs dotnet'
-
 inputs:
   command:
     description: 'Command to run'
@@ -27,22 +26,21 @@ inputs:
     required: false
     type: string
     default: ''
+
+# inputs.<name> => $INPUT_<name>
 runs:
   using: "composite"
   steps:
-    dotnet:
-      jobs:
-        dotnet:
-          defaults:
-            run:
-              shell: bash
-          pushd:
-            run: pushd ${{ inputs.directory }}
-            if: ${{ '' != inputs.directory }}
-          command:
-            env.restore: ${{ fromJSON('["--no-restore", ""]')[ inputs.restore ] }}
-            env.build: ${{ fromJSON('["--no-build", ""]')[ inputs.build ] }}
-            run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
-          popd:
-            run: popd
-            if: ${{ '' != inputs.directory }}
+    pushd:
+      run: pushd ${{ inputs.directory }}
+        shell: bash
+      if: ${{ '' != inputs.directory }}
+    command:
+      env.restore: ${{ fromJSON('["--no-restore", ""]')[ inputs.restore ] }}
+      env.build: ${{ fromJSON('["--no-build", ""]')[ inputs.build ] }}
+      run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
+        shell: bash
+    popd:
+      run: popd
+        shell: bash
+      if: ${{ '' != inputs.directory }}
