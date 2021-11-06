@@ -31,16 +31,16 @@ inputs:
 runs:
   using: "composite"
   steps:
-    pushd:
+    - name: pushd
       run: pushd ${{ inputs.directory }}
         shell: bash
       if: ${{ '' != inputs.directory }}
-    command:
+    - name: command
       env.restore: ${{ fromJSON('["--no-restore", ""]')[ inputs.restore ] }}
       env.build: ${{ fromJSON('["--no-build", ""]')[ inputs.build ] }}
       run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
         shell: bash
-    popd:
+    - name: popd
       run: popd
         shell: bash
       if: ${{ '' != inputs.directory }}
