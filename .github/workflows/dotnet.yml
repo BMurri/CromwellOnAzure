@@ -59,7 +59,7 @@ jobs:
         pushd src/TesApi.Tests
         dotnet build --no-restore
         popd
-        pushd drc/TriggerService.Tests
+        pushd src/TriggerService.Tests
         dotnet build --no-restore
         popd
     - name: Test
