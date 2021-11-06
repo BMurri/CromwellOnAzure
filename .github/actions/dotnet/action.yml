@@ -34,16 +34,14 @@ jobs:
 #    run:
 #      shell: bash
   dotnet:
-    runs:
-      using: "composite"
-      steps:
-        pushd:
-          run: pushd ${{ inputs.directory }}
-          if: ${{ '' != inputs.directory }}
-        command:
-          env.restore: ${{ fromJSON('["--no-restore", ""]')[ inputs.restore ] }}
-          env.build: ${{ fromJSON('["--no-build", ""]')[ inputs.build ] }}
-          run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
-        popd:
-          run: popd
-          if: ${{ '' != inputs.directory }}
+    steps:
+      pushd:
+        run: pushd ${{ inputs.directory }}
+        if: ${{ '' != inputs.directory }}
+      command:
+        env.restore: ${{ fromJSON('["--no-restore", ""]')[ inputs.restore ] }}
+        env.build: ${{ fromJSON('["--no-build", ""]')[ inputs.build ] }}
+        run: dotnet ${{ inputs.command }} ${{ format('{0} {1}', env.restore, env.build) }} ${{ inputs.additional }}
+      popd:
+        run: popd
+        if: ${{ '' != inputs.directory }}
