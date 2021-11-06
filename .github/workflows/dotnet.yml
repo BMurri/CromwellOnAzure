@@ -49,6 +49,7 @@ jobs:
         dotnet build --no-restore -r  ${{ matrix.platform }}
         popd
         export SelfContained=false
+        export PublishSingleFile=false
         pushd src/Common.Tests
         dotnet build --no-restore
         popd
@@ -64,8 +65,12 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: Publish
-      run: dotnet publish --no-build --verbosity normal -r linux-x64
+      run: |
+        echo $SelfContained $PublishSingleFile
+        dotnet publish --no-build --verbosity normal -r linux-x64
       working-directory: src/${{ matrix.projects }}
     - name: Publish
-      run: dotnet publish --no-build --verbosity normal --self-contained true -r ${{ matrix.platform }}
+      run: |
+        echo $SelfContained $PublishSingleFile
+        dotnet publish --no-build --verbosity normal --self-contained true -r ${{ matrix.platform }}
       working-directory: src/deploy-cromwell-on-azure
