@@ -4,16 +4,32 @@
 # https://aka.ms/yaml
 
 trigger:
-- master
+  batch: true
+  branches:
+    include:
+    - master
+
+pr:
+  autoCancel: true
+  drafts: false
+  branches:
+    include:
+    - master
+
+name: Test_System_Build.$(Rev:.r)
 
 pool:
   vmImage: ubuntu-latest
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
 - script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+    echo echo 'Reason: $(Build.Reason)'
+    echo echo 'SourceVersion: $(Build.SourceVersion)'
+    echo echo 'QueuedBy: $(Build.QueuedBy)'
+    echo echo 'RequestedFor: $(Build.RequestedFor)'
+  displayName: 'Additional information'
+
+- script: echo '$(Build.BuildNumber)'
+  displayName: 'Build Number'
+  
+- script: echo "##vso[task.setvariable variable=BuildNum; isoutput=true]$(Build.BuildNumber)"
