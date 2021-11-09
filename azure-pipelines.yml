@@ -16,7 +16,7 @@ pr:
     include:
     - master
 
-name: Test_System_Build.$(Rev:.r)
+name: Test.System.Build$(Rev:.r)
 
 pool:
   vmImage: ubuntu-latest
