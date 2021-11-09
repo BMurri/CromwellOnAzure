@@ -6,11 +6,22 @@ on:
   check_suite:
     types: completed
 
+permissions:
+  checks: read
+  statuses: read
+
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
-    - name: Do Test
-      run: echo 'Test ran!'
+    - name: Dump GitHub context
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+      run: echo "$GITHUB_CONTEXT"
+      shell: bash
+    - name: Dump GitHub context
+      env:
+        ENV_CONTEXT: ${{ toJson(env) }}
+      run: echo "$ENV_CONTEXT"
       shell: bash
