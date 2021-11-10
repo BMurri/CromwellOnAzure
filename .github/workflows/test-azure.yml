@@ -3,8 +3,6 @@ name: TestAzure
 on:
   check_run:
     types: completed
-  check_suite:
-    types: completed
 
 permissions:
   checks: read
