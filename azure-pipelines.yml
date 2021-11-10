@@ -24,7 +24,7 @@ steps:
     downloadType: 'specific'
     downloadPath: '$(System.ArtifactsDirectory)'
 
-- script: cat $(System.ArtifactsDirectory)/variables/pipeline.env
+- script: cat $(System.ArtifactsDirectory)/variables/test_pipeline.env
   displayName: 'Restore Enviornment Variables'
 - script: echo "FOO:$(FOO)"
   displayName: 'echo envrionemtn variables'
