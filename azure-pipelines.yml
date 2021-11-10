@@ -1,0 +1,6 @@
+resources:
+  repositories:
+  - repository: coa
+    type: github
+    name: BMurri/CromwellOnAzure
+    endpoint: BMurri
