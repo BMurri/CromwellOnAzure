@@ -1,6 +1,30 @@
 resources:
-  repositories:
-  - repository: coa
-    type: github
-    name: BMurri/CromwellOnAzure
-    endpoint: BMurri
+  pipelines:
+  - pipeline: buildNumber
+    source: TestBuildNumber
+    trigger:
+      branches:
+      - master
+
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- script: 'env | sort'
+  displayName: "echo Environment Variables"
+- task: DownloadBuildArtifacts@0
+  displayName: 'Download variables'
+  inputs:
+    buildType: 'specific'
+    project: 'Emmons'
+    pipeline: '106'
+    buildVersionToDownload: 'latest'
+    downloadType: 'specific'
+    downloadPath: '$(System.ArtifactsDirectory)'
+
+- script: cat $(System.ArtifactsDirectory)/variables/pipeline.env
+  displayName: 'Restore Enviornment Variables'
+- script: echo "FOO:$(FOO)"
+  displayName: 'echo envrionemtn variables'
