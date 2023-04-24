@@ -11,6 +11,9 @@ namespace Common.Tests
     [TestClass]
     public class AvailabilityTrackerTests
     {
+        public AvailabilityTrackerTests()
+            => Common.NewtonsoftJsonSafeInit.SetDefaultSettings();
+
         [TestMethod]
         public void CommonAvailabilityMessageMatches()
         {
@@ -22,19 +25,22 @@ namespace Common.Tests
         public async Task WaitUntilSystemAvailable()
         {
             var availabilityTracker = new AvailabilityTracker();
-            int attempts = 0;
+            var attempts = 0;
             var stdOut = new List<string>();
 
-            Func<Task<bool>> availableAfter3Tries = async () => {
+            async Task<bool> availableAfter3Tries()
+            {
+                await Task.Yield();
                 if (++attempts == 3)
                 {
                     return true;
                 }
 
                 return false;
-            };
+            }
 
-            await availabilityTracker.WaitForAsync(availableAfter3Tries, TimeSpan.FromMilliseconds(1), "Test", msg => stdOut.Add(msg));
+            await availabilityTracker.WaitForAsync(availableAfter3Tries, TimeSpan.FromMilliseconds(1), "Test", msg => stdOut.Add(msg),
+                new System.Threading.CancellationToken());
 
             Assert.IsTrue(stdOut.Count == attempts);
         }
@@ -43,27 +49,28 @@ namespace Common.Tests
         public async Task NoLogsWhenSystemIsAlreadyAvailable()
         {
             var availabilityTracker = new AvailabilityTracker();
-            int attempts = 0;
+            var attempts = 0;
             var stdOut = new List<string>();
 
-            Func<Task<bool>> availableAfter3Tries = async () => {
+            async Task<bool> availableAfter3Tries()
+            {
+                await Task.Yield();
                 if (++attempts == 3)
                 {
                     return true;
                 }
 
                 return false;
-            };
+            }
 
-            Func<Task<bool>> cromwellIsAvailable = async () => {
-                return true;
-            };
+            Task<bool> cromwellIsAvailable()
+                => Task.FromResult(true);
 
-            await availabilityTracker.WaitForAsync(availableAfter3Tries, TimeSpan.FromMilliseconds(1), "Test", msg => stdOut.Add(msg));
+            await availabilityTracker.WaitForAsync(availableAfter3Tries, TimeSpan.FromMilliseconds(1), "Test", msg => stdOut.Add(msg), new System.Threading.CancellationToken());
 
             Assert.IsTrue(stdOut.Count == attempts);
 
-            await availabilityTracker.WaitForAsync(cromwellIsAvailable, TimeSpan.FromMilliseconds(1), "Test", msg => stdOut.Add(msg));
+            await availabilityTracker.WaitForAsync(cromwellIsAvailable, TimeSpan.FromMilliseconds(1), "Test", msg => stdOut.Add(msg), new System.Threading.CancellationToken());
 
             // Verify it did not log since it was already available
             Assert.IsTrue(stdOut.Count == attempts);

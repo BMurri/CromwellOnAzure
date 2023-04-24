@@ -7,13 +7,11 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Azure.Management.ApplicationInsights.Management;
 using Microsoft.Azure.Management.ResourceManager.Fluent;
 using Microsoft.Azure.Management.ResourceManager.Fluent.Authentication;
 using Microsoft.Azure.Services.AppAuthentication;
-using Microsoft.Extensions.Logging;
 using Microsoft.Rest;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
@@ -27,6 +25,7 @@ namespace TriggerService
         private readonly CloudStorageAccount account;
         private readonly CloudBlobClient blobClient;
         private readonly HttpClient httpClient;
+        private readonly HashSet<string> createdContainers = new();
 
         public AzureStorage(CloudStorageAccount account, HttpClient httpClient)
         {
@@ -38,13 +37,13 @@ namespace TriggerService
 
             blobClient = account.CreateCloudBlobClient();
             var host = account.BlobStorageUri.PrimaryUri.Host;
-            AccountName = host.Substring(0, host.IndexOf("."));
+            AccountName = host[..host.IndexOf(".")];
         }
 
         public string AccountName { get; }
         public string AccountAuthority => account.BlobStorageUri.PrimaryUri.Authority;
 
-        public static async Task<string> GetAppInsightsInstrumentationKeyAsync(string appInsightsApplicationId)
+        public static async Task<string> GetAppInsightsConnectionStringAsync(string appInsightsApplicationId)
         {
             var azureClient = await GetAzureManagementClientAsync();
             var subscriptionIds = (await azureClient.Subscriptions.ListAsync()).Select(s => s.SubscriptionId);
@@ -58,9 +57,9 @@ namespace TriggerService
                     var app = (await new ApplicationInsightsManagementClient(credentials) { SubscriptionId = subscriptionId }.Components.ListAsync())
                         .FirstOrDefault(a => a.ApplicationId.Equals(appInsightsApplicationId, StringComparison.OrdinalIgnoreCase));
 
-                    if (app != null)
+                    if (app is not null)
                     {
-                        return app.InstrumentationKey;
+                        return app.ConnectionString;
                     }
                 }
                 catch
@@ -94,16 +93,24 @@ namespace TriggerService
             var readmeBlobName = $"{lowercaseState}/readme.txt";
 
             return blobs
+                .Where(blob => !blob.Name.Equals(lowercaseState, StringComparison.OrdinalIgnoreCase))
                 .Where(blob => !blob.Name.Equals(readmeBlobName, StringComparison.OrdinalIgnoreCase))
                 .Where(blob => blob.Properties.LastModified.HasValue)
                 .Select(blob => new TriggerFile { Uri = blob.Uri.AbsoluteUri, ContainerName = WorkflowsContainerName, Name = blob.Name, LastModified = blob.Properties.LastModified.Value });
         }
-		
+
         /// <inheritdoc />
         public async Task<string> UploadFileTextAsync(string content, string container, string blobName)
         {
             var containerReference = blobClient.GetContainerReference(container);
-            await containerReference.CreateIfNotExistsAsync();
+
+            if (!createdContainers.Contains(container.ToLowerInvariant()))
+            {
+                // Only attempt to create the container once per lifetime of the process
+                await containerReference.CreateIfNotExistsAsync();
+                createdContainers.Add(container.ToLowerInvariant());
+            }
+
             var blob = containerReference.GetBlockBlobReference(blobName);
             await blob.UploadTextAsync(content);
             return blob.Uri.AbsoluteUri;
@@ -127,38 +134,24 @@ namespace TriggerService
 
             var context = new OperationContext();
 
-            using (var memoryStream = new MemoryStream())
-            {
-                await blob.DownloadToStreamAsync(memoryStream, null, options, context);
-                return memoryStream.ToArray();
-            }
+            using var memoryStream = new MemoryStream();
+            await blob.DownloadToStreamAsync(memoryStream, null, options, context);
+            return memoryStream.ToArray();
         }
 
         /// <inheritdoc />
         public async Task<byte[]> DownloadFileUsingHttpClientAsync(string url)
-        {
-            return await httpClient.GetByteArrayAsync(url);
-        }
+            => await httpClient.GetByteArrayAsync(url);
 
         /// <inheritdoc />
         public Task<string> DownloadBlobTextAsync(string container, string blobName)
-        {
-            return blobClient.GetContainerReference(container).GetBlockBlobReference(blobName).DownloadTextAsync();
-        }
+            => blobClient.GetContainerReference(container).GetBlockBlobReference(blobName).DownloadTextAsync();
 
         /// <inheritdoc />
         public Task DeleteBlobIfExistsAsync(string container, string blobName)
-        {
-			return blobClient.GetContainerReference(container).GetBlockBlobReference(blobName).DeleteIfExistsAsync();
-        }
+            => blobClient.GetContainerReference(container).GetBlockBlobReference(blobName).DeleteIfExistsAsync();
 
-        private class StorageAccountInfo
-        {
-            public string Id { get; set; }
-            public string Name { get; set; }
-            public string BlobEndpoint { get; set; }
-            public string SubscriptionId { get; set; }
-        }
+
 
         /// <summary>
         /// Gets an authenticated Azure Client instance
@@ -188,78 +181,23 @@ namespace TriggerService
                     blobListingDetails: BlobListingDetails.None,
                     maxResults: null,
                     options: null,
-                    operationContext: null).ConfigureAwait(false);
+                    operationContext: null);
 
                 continuationToken = partialResult.ContinuationToken;
 
                 blobList.AddRange(partialResult.Results.OfType<CloudBlockBlob>());
             }
-            while (continuationToken != null);
+            while (continuationToken is not null);
 
             return blobList;
         }
 
-        public static async Task<(IEnumerable<IAzureStorage>, IAzureStorage)> GetStorageAccountsUsingMsiAsync(string accountName)
-        {
-            IAzureStorage defaultAzureStorage = default;
-            (var accounts, var defaultAccount) = await GetCloudStorageAccountsUsingMsiAsync(accountName);
-            return (accounts.Select(GetAzureStorage).ToList(), defaultAzureStorage ?? throw new Exception($"Azure Storage account with name: {accountName} not found in list of {accounts.Count} storage accounts."));
 
-            IAzureStorage GetAzureStorage(CloudStorageAccount cloudStorage)
-            {
-                var azureStorage = new AzureStorage(cloudStorage, new HttpClient());
-                if (cloudStorage.Equals(defaultAccount))
-                {
-                    defaultAzureStorage = azureStorage;
-                }
-                return azureStorage;
-            }
-        }
 
-        private static async Task<(IList<CloudStorageAccount>, CloudStorageAccount)> GetCloudStorageAccountsUsingMsiAsync(string accountName)
-        {
-            CloudStorageAccount defaultAccount = default;
-            var accounts = await GetAccessibleStorageAccountsAsync();
-            return (await Task.WhenAll(accounts.Select(GetCloudAccountFromStorageAccountInfo)), defaultAccount ?? throw new Exception($"Azure Storage account with name: {accountName} not found in list of {accounts.Count} storage accounts."));
-
-            async Task<CloudStorageAccount> GetCloudAccountFromStorageAccountInfo(StorageAccountInfo account)
-            {
-                var key = await GetStorageAccountKeyAsync(account);
-                var storageCredentials = new Microsoft.WindowsAzure.Storage.Auth.StorageCredentials(account.Name, key);
-                var storageAccount = new CloudStorageAccount(storageCredentials, true);
-                if (account.Name == accountName)
-                {
-                    defaultAccount = storageAccount;
-                }
-                return storageAccount;
-            }
-        }
 
         private static Task<string> GetAzureAccessTokenAsync(string resource = "https://management.azure.com/")
-        {
-            return new AzureServiceTokenProvider().GetAccessTokenAsync(resource);
-        }
+            => new AzureServiceTokenProvider().GetAccessTokenAsync(resource);
 
-        private static async Task<List<StorageAccountInfo>> GetAccessibleStorageAccountsAsync()
-        {
-            var azureClient = await GetAzureManagementClientAsync();
 
-            var subscriptionIds = (await azureClient.Subscriptions.ListAsync()).Select(s => s.SubscriptionId);
-
-            return (await Task.WhenAll(
-                subscriptionIds.Select(async subId =>
-                    (await azureClient.WithSubscription(subId).StorageAccounts.ListAsync())
-                        .Select(a => new StorageAccountInfo { Id = a.Id, Name = a.Name, SubscriptionId = subId, BlobEndpoint = a.EndPoints.Primary.Blob }))))
-                .SelectMany(a => a)
-                .ToList();
-        }
-
-        private static async Task<string> GetStorageAccountKeyAsync(StorageAccountInfo storageAccountInfo)
-        {
-            var azureClient = await GetAzureManagementClientAsync();
-            var storageAccount = await azureClient.WithSubscription(storageAccountInfo.SubscriptionId).StorageAccounts.GetByIdAsync(storageAccountInfo.Id);
-
-            return (await storageAccount.GetKeysAsync()).First().Value;
-        }
     }
 }

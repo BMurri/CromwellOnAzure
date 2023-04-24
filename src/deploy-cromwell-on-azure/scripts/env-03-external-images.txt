@@ -1,2 +1,1 @@
-CromwellImageName=broadinstitute/cromwell:70
-MySqlImageName=mysql:latest
+CromwellImageName=broadinstitute/cromwell:85

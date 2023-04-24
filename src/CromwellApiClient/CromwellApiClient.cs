@@ -4,10 +4,11 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
+using TriggerService;
 
 [assembly: InternalsVisibleTo("TriggerService.Tests")]
 namespace CromwellApiClient
@@ -16,53 +17,43 @@ namespace CromwellApiClient
     {
         private const string Version = "v1";
         private static readonly string basePath = $"/api/workflows/{Version}";
-        private static readonly HttpClient httpClient = new HttpClient();
+        private static readonly HttpClient httpClient = new();
         private readonly string url;
 
-        public CromwellApiClient(string baseUrl)
+        public CromwellApiClient(IOptions<CromwellApiClientOptions> cromwellApiClientOptions)
         {
-            if (string.IsNullOrWhiteSpace(baseUrl))
+            ArgumentException.ThrowIfNullOrEmpty(cromwellApiClientOptions.Value.BaseUrl, nameof(cromwellApiClientOptions.Value.BaseUrl));
+
+            Common.NewtonsoftJsonSafeInit.SetDefaultSettings();
+
+            if (string.IsNullOrWhiteSpace(cromwellApiClientOptions.Value.BaseUrl))
             {
-                throw new ArgumentException(nameof(baseUrl));
+                throw new ArgumentException(null, nameof(cromwellApiClientOptions.Value.BaseUrl));
             }
 
-            url = $"{baseUrl.TrimEnd('/')}{basePath}";
+            url = $"{cromwellApiClientOptions.Value.BaseUrl.TrimEnd('/')}{basePath}";
         }
 
         public string GetUrl()
-        {
-            return url;
-        }
+            => url;
 
         public async Task<GetLogsResponse> GetLogsAsync(Guid id)
-        {
-            return await GetAsync<GetLogsResponse>($"/{id}/logs");
-        }
+            => await GetAsync<GetLogsResponse>($"/{id}/logs");
 
         public async Task<GetOutputsResponse> GetOutputsAsync(Guid id)
-        {
-            return new GetOutputsResponse { Id = id, Json = await GetAsyncWithMediaType($"/{id}/outputs", "application/json") };
-        }
+            => new() { Id = id, Json = await GetAsyncWithMediaType($"/{id}/outputs", "application/json") };
 
         public async Task<GetMetadataResponse> GetMetadataAsync(Guid id)
-        {
-            return new GetMetadataResponse { Id = id, Json = await GetAsyncWithMediaType($"/{id}/metadata", "application/json") };
-        }
+            => new() { Id = id, Json = await GetAsyncWithMediaType($"/{id}/metadata?expandSubWorkflows=true", "application/json") };
 
         public async Task<GetStatusResponse> GetStatusAsync(Guid id)
-        {
-            return await GetAsync<GetStatusResponse>($"/{id}/status");
-        }
+            => await GetAsync<GetStatusResponse>($"/{id}/status");
 
         public async Task<GetTimingResponse> GetTimingAsync(Guid id)
-        {
-            return new GetTimingResponse { Id = id, Html = await GetAsyncWithMediaType($"/{id}/timing", "text/html") };
-        }
+            => new() { Id = id, Html = await GetAsyncWithMediaType($"/{id}/timing", "text/html") };
 
         public async Task<PostAbortResponse> PostAbortAsync(Guid id)
-        {
-            return await PostAsync<PostAbortResponse>($"/{id}/abort", id);
-        }
+            => await PostAsync<PostAbortResponse>($"/{id}/abort", id);
 
         public async Task<PostWorkflowResponse> PostWorkflowAsync(
             string workflowSourceFilename,
@@ -86,7 +77,7 @@ namespace CromwellApiClient
             return await PostAsync<PostWorkflowResponse>(string.Empty, files);
         }
 
-        internal List<FileToPost> AccumulatePostFiles(
+        internal static List<FileToPost> AccumulatePostFiles(
             string workflowSourceFilename,
             byte[] workflowSourceData,
             List<string> workflowInputsFilename,
@@ -97,37 +88,33 @@ namespace CromwellApiClient
             byte[] workflowDependenciesData = null)
         {
             var files = new List<FileToPost> {
-                new FileToPost(workflowSourceFilename, workflowSourceData, "workflowSource", removeTabs: true)
+                new(workflowSourceFilename, workflowSourceData, "workflowSource", removeTabs: true)
             };
 
             for (var i = 0; i < workflowInputsFilename.Count; i++)
             {
                 var parameterName = i == 0 ? "workflowInputs" : "workflowInputs_" + (i + 1);
-                files.Add(new FileToPost(workflowInputsFilename[i], workflowInputsData[i], parameterName, removeTabs: true));
+                files.Add(new(workflowInputsFilename[i], workflowInputsData[i], parameterName, removeTabs: true));
             }
 
-            if (workflowOptionsFilename != null && workflowOptionsData != null)
+            if (workflowOptionsFilename is not null && workflowOptionsData is not null)
             {
-                files.Add(new FileToPost(workflowOptionsFilename, workflowOptionsData, "workflowOptions", removeTabs: true));
+                files.Add(new(workflowOptionsFilename, workflowOptionsData, "workflowOptions", removeTabs: true));
             }
 
-            if (workflowDependenciesFilename != null && workflowDependenciesData != null)
+            if (workflowDependenciesFilename is not null && workflowDependenciesData is not null)
             {
-                files.Add(new FileToPost(workflowDependenciesFilename, workflowDependenciesData, "workflowDependencies"));
+                files.Add(new(workflowDependenciesFilename, workflowDependenciesData, "workflowDependencies"));
             }
 
             return files;
         }
 
         public async Task<PostQueryResponse> PostQueryAsync(string queryJson)
-        {
-            return await PostAsync<PostQueryResponse>("/query", queryJson);
-        }
+            => await PostAsync<PostQueryResponse>("/query", queryJson);
 
         private string GetApiUrl(string path)
-        {
-            return $"{url}{path}";
-        }
+            => $"{url}{path}";
 
         private async Task<T> GetAsync<T>(string path)
         {
@@ -169,11 +156,11 @@ namespace CromwellApiClient
 
                 var request = new HttpRequestMessage()
                 {
-                    RequestUri = new Uri(url),
+                    RequestUri = new(url),
                     Method = HttpMethod.Get,
                 };
 
-                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(mediaType));
+                request.Headers.Accept.Add(new(mediaType));
                 response = await httpClient.SendAsync(request);
                 response.EnsureSuccessStatusCode();
                 return await response.Content.ReadAsStringAsync();
@@ -203,7 +190,7 @@ namespace CromwellApiClient
             try
             {
                 url = GetApiUrl(path);
-                var content = new FormUrlEncodedContent(new[] { new KeyValuePair<string, string>("id", id.ToString()) });
+                var content = new FormUrlEncodedContent(new KeyValuePair<string, string>[] { new("id", id.ToString()) });
                 response = await httpClient.PostAsync(url, content);
                 response.EnsureSuccessStatusCode();
                 return await response.Content.ReadAsAsync<T>();
@@ -291,7 +278,7 @@ namespace CromwellApiClient
             }
         }
 
-        private async Task AppendResponseBodyAsync(HttpResponseMessage response, StringBuilder messageBuilder)
+        private static async Task AppendResponseBodyAsync(HttpResponseMessage response, StringBuilder messageBuilder)
         {
             try
             {
@@ -326,14 +313,14 @@ namespace CromwellApiClient
             /// </summary>
             /// <param name="data">The byte array of the file</param>
             /// <returns>A new byte array of the file</returns>
-            private byte[] EncodeToUtf8AndRemoveTabsAndDecode(byte[] data)
+            private static byte[] EncodeToUtf8AndRemoveTabsAndDecode(byte[] data)
             {
                 if (data?.Length == 0)
                 {
                     return data;
                 }
 
-                return Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(data).Replace("\t", ""));
+                return Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(data).Replace("\t", " ")); // Simply removing an embedded tab may change the meaning and break JSON. The safest option is to replace one kind of whitespace with another.
             }
         }
     }
